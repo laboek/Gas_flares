@@ -1,0 +1,74 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Aug  9 19:32:34 2022
+
+@author: laura
+"""
+
+# 1)
+# sort through VIIRS VNF data for specific GF
+# only keep one (highest) value per date in accordance with VNP09GA daytime data
+# normalise values
+# save in new .csv file
+
+#############################################################################
+#############################################################################
+
+import pandas as pd
+import numpy as np
+# import glob
+from os.path import exists
+from datetime import datetime
+
+
+# read the csv file & format date column
+df = pd.read_csv('ADD PATH TO FILE')
+# print(df.dtypes)
+df['Date_Mscan'] = pd.to_datetime(df['Date_Mscan']).dt.strftime('%Y-%m-%d')
+
+# Filter df for specific GF location
+# -	GF1: Al-Midaina, Iraq (31°01'34.7"N 47°17'00.9"E)
+# o	31.013-31.04 lat + 47.2-47.303 lon (~2km radius)
+# -	GF2: Al-Kahla, Iraq (31°40'32.5"N 47°26'10.6"E)
+# o	31.670-31.688 lat, 47.416-47.454 lon (~2km radius)
+# -	GF3: Al-Qurna, Iraq (31°03'45.8"N 47°37'02.9"E)
+# o	31.045-31.080 lat, 47.597-47.633 lon (~2km radius)
+# -	GF4: Khuzestan Province, Iran (31°16'20.0"N 48°07'00.8"E)
+# o	31.26-31.285 lat + 48.1-48.133 lon (~2km radius)
+# -	GF5: Khuzestan Province, Iran (30°50'04.6"N 49°45'40.8"E)
+# o	30.817-30.852 lat, 49.740-49.782 lon
+
+df_loc = df[(df["Lat_GMTCO"]>=30.817) & (df["Lat_GMTCO"]<=30.852) & (df["Lon_GMTCO"]>=49.740) & (df["Lon_GMTCO"]<=49.782)]
+
+# save to csv
+filename = "ADD FILE NAME"
+file_exists = exists(filename)
+df_loc.to_csv(filename, mode='a', header = not file_exists)
+
+# Filter df for specific time frame: year 2021
+df_date = df_loc.loc[(df_loc['Date_Mscan'] >= '2021-01-01') & (df_loc['Date_Mscan'] < '2021-12-31')]
+df_date = df_loc.loc[(df_loc['Date_Mscan'] >= '2021-06-01') & (df_loc['Date_Mscan'] < '2021-10-01')]
+
+# subset dataframe based on highest value per day
+df_new = df_date.groupby(['Date_Mscan'], as_index=False)['RH'].max()
+
+# save to csv
+filename = "GF5_summer_max.csv"
+file_exists = exists(filename)
+df_new.to_csv(filename, mode='a', header = not file_exists)
+
+
+#############################################################################
+#############################################################################
+
+# normalise data
+df_date['NORM'] = (df_date['RH'] - df_date['RH'].min()) / (df_date['RH'].max() - df_date['RH'].min())
+
+
+#############################################################################
+#############################################################################
+
+# save to csv
+filename = "GF2_summer_norm.csv"
+file_exists = exists(filename)
+df_date.to_csv(filename, mode='a', header = not file_exists)
